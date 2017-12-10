@@ -16,9 +16,9 @@ namespace MasterMUD.Framework.Networking
 
         protected TcpServer TcpServerConnection { get; private set; }
 
-        protected virtual System.Reactive.Subjects.ISubject<TcpListener.TcpSession> ConnectionSubject { get; private set; }
+        protected System.Reactive.Subjects.ISubject<TcpListener.TcpSession> ConnectionSubject { get; private set; }
 
-        protected virtual System.IObservable<TcpListener.TcpSession> ConnectionObservable { get; private set; }
+        protected System.IObservable<TcpListener.TcpSession> ConnectionObservable { get; private set; }
 
         public bool Active => this.TcpServerConnection.Active;
 
@@ -45,20 +45,10 @@ namespace MasterMUD.Framework.Networking
             this.ConnectionSubject = new System.Reactive.Subjects.Subject<TcpListener.TcpSession>();
             this.ConnectionObservable = this.ConnectionSubject.AsObservable();
             this.Sessions = new System.Collections.Generic.HashSet<TcpSession>();
-            this.Subscribe(session =>
-            {
-                this.Sessions.Add(session);
-                System.Console.WriteLine($"{session.Address} connected on port {session.Port}");
-            });
             this.TcpServerConnection = new TcpServer(host: this);
         }
 
-        protected virtual void Connect(TcpSession session)
-        {
-            this.ConnectionSubject.OnNext(value: session);
-        }
-
-        protected async void ConnectAsync(System.Net.Sockets.TcpClient tcpClient)
+        protected virtual async void ConnectAsync(System.Net.Sockets.TcpClient tcpClient)
         {
             var connection = tcpClient;
 
@@ -86,7 +76,39 @@ namespace MasterMUD.Framework.Networking
             var address = endpoint.Substring(0, endpoint.IndexOf(':'));
             var port = int.Parse(endpoint.Substring(address.Length + 1));
 
-            this.Connect(session: TcpSession.Create(address: address, port: port, connection: connection));
+            var session = TcpSession.Create(address: address, port: port, connection: connection);
+
+            Sessions.Add(session);
+
+            this.ConnectionSubject.OnNext(session);
+        }
+
+        public void Disconnect(TcpSession session)
+        {
+            if (this.Sessions.Contains(session) && this.Sessions.Remove(session))
+                try
+                {
+                    session.Connection.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(ex);
+                }
+                finally
+                {
+                    try
+                    {
+                        session.Connection.Dispose();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Console.Error.WriteLine(ex2);
+                    }
+                    finally
+                    {
+                        session = null;
+                    }
+                }
         }
 
         public void Start()
@@ -132,12 +154,7 @@ namespace MasterMUD.Framework.Networking
             }
         }
 
-        public virtual IDisposable Subscribe(IObserver<TcpListener.TcpSession> observer)
-        {
-            var subscription = this.ConnectionObservable.Subscribe(observer);
-
-            return subscription;
-        }
+        public virtual IDisposable Subscribe(IObserver<TcpListener.TcpSession> observer) => this.ConnectionObservable.Subscribe(observer);
 
         protected sealed class TcpServer : System.Net.Sockets.TcpListener
         {

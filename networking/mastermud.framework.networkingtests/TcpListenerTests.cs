@@ -1,5 +1,7 @@
 using MasterMUD.Framework.Networking;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace MasterMUD
@@ -31,57 +33,64 @@ namespace MasterMUD
                 this.Listener = null;
             }
         }
-
+        
         [TestMethod]
-        public void Active_Is_True_When_Started()
-        {
-            if (!this.Listener.Active)
-            {
-                this.Listener.Start();
-                Assert.IsTrue(this.Listener.Active);
-            }
-            else
-            {
-                Assert.Inconclusive(message: "Active was already True.");
-            }
-        }
-
-        [TestMethod]
-        public void Asynchronous_Reactive_Connection_Becomes_Session()
+        public void TcpListener_Is_Reactive_AndAlso_Asynchronous()
         {
             if (!this.Listener.Active)
                 this.Listener.Start();
 
             Assert.IsTrue(this.Listener.Active);
 
-            using (var tcpClient = new System.Net.Sockets.TcpClient())
+            var session = default(MasterMUD.Framework.Networking.TcpListener.TcpSession);
+            var subscription = this.Listener.Subscribe(subject =>
+            {
+                if (session == null)
+                    session = subject;
+            });
+            
+            Assert.AreEqual(0, this.Listener.TotalConnections);
+
+            using (subscription)
             {
                 try
                 {
-                    if (tcpClient.ConnectAsync(host: System.Net.IPAddress.Loopback.ToString(), port: ListenerPort).Wait(millisecondsTimeout: 333 * 3))
-                        Assert.IsTrue(this.Listener.TotalConnections == 1);
+                    using (var tcpClient = new System.Net.Sockets.TcpClient())
+                    {
+                        if (false == tcpClient.ConnectAsync(host: System.Net.IPAddress.Loopback.ToString(), port: ListenerPort).Wait(millisecondsTimeout: 333 * 3))
+                            Assert.Fail("Couldn't connect to host.");
+
+                        Assert.IsNotNull(session, message: "The session was not obtained asynchronously inside of the subscription.");
+
+                        Assert.AreNotEqual(0, this.Listener.TotalConnections);
+                    }
                 }
                 catch (System.Exception ex)
                 {
                     System.Console.Error.WriteLine(ex);
                 }
+
+                this.Listener.Disconnect(session);                
             }
 
-            Assert.Inconclusive(message: $"Total Connections: {this.Listener.TotalConnections}");
+            Assert.AreEqual(0, this.Listener.TotalConnections);
         }
 
         private sealed class TestListener : MasterMUD.Framework.Networking.TcpListener
         {
-            public int TotalConnections { get; private set; }
+            public int TotalConnections => base.Sessions.Count;
 
             public TestListener(int port) : base(localaddr: System.Net.IPAddress.Loopback, port: port)
             {
             }
 
-            protected override void Connect(TcpSession session)
+            protected override async void ConnectAsync(TcpClient tcpClient)
             {
-                this.TotalConnections += 1;
-                base.Connect(session);
+                var client = tcpClient;
+
+                base.ConnectAsync(tcpClient);
+
+                await Task.Delay(33, base.CancellationTokenSource.Token);
             }
         }
     }
