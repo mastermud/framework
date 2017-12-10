@@ -49,29 +49,16 @@ namespace MasterMUD
         [TestMethod]
         public void Asynchronous_Reactive_Connection_Becomes_Session()
         {
+            if (!this.Listener.Active)
+                this.Listener.Start();
+
+            Assert.IsTrue(this.Listener.Active);
+
             var tcpClient = new System.Net.Sockets.TcpClient();
 
-            var task = new Task(async () =>
-            {
-                try
-                {
-                    await tcpClient.ConnectAsync(host: System.Net.IPAddress.Loopback.ToString(), port: ListenerPort);
-                }
-                catch (System.Exception ex)
-                {
-                    System.Console.Error.WriteLine(ex);
-                }
-            });
-
-            var awaiter = task.GetAwaiter();
-
-            awaiter.OnCompleted(() =>
-            {
-                Assert.AreNotEqual(notExpected: 0, actual: this.Listener.TotalConnections);
-            });
-
-            task.Start();
-            task.Wait();
+            var connectionTaskAsync = tcpClient.ConnectAsync(host: System.Net.IPAddress.Loopback.ToString(), port: ListenerPort);
+            connectionTaskAsync.Start();
+            connectionTaskAsync.Wait();
 
             Assert.AreEqual(expected: 1, actual: this.Listener.TotalConnections);
 
