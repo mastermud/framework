@@ -1,34 +1,92 @@
 ﻿using System;
-using System.Net;
+using System.Net.Sockets;
+using System.Reactive;
+using System.Reactive.Linq;
 using MasterMUD.Framework;
 
 namespace MasterMUD.Framework.Networking
 {
-    public abstract class TcpListener
+    public abstract class TcpListener : IObservable<TcpListener.TcpSession>
     {
-        private volatile int _backlog;
+        private volatile int Backlog;
 
-        private readonly TcpConnection _tcpConnection;
-        
-        public bool Active => _tcpConnection.Active;
+        private volatile IDisposable ConnectionSubjectSubscription;
 
-        public IPAddress Address { get; }
+        protected System.Threading.CancellationTokenSource CancellationTokenSource { get; private set; }
+
+        protected TcpServer TcpServerConnection { get; private set; }
+
+        protected virtual System.Reactive.Subjects.ISubject<TcpListener.TcpSession> ConnectionSubject { get; private set; }
+
+        protected virtual System.IObservable<TcpListener.TcpSession> ConnectionObservable { get; private set; }
+
+        public bool Active => this.TcpServerConnection.Active;
+
+        public System.Net.IPAddress Address { get; }
 
         public int Port { get; }
 
-        protected TcpListener(int port) : this(localaddr: IPAddress.Any, port: port)
+        protected System.Collections.Generic.HashSet<TcpListener.TcpSession> Sessions { get; }
+
+        protected TcpListener(int port, int backlog = -1) : this(localaddr: System.Net.IPAddress.Any, port: port, backlog: backlog)
         {
         }
 
-        protected TcpListener(IPEndPoint localEP) : this(localaddr: localEP.Address, port: localEP.Port)
+        protected TcpListener(System.Net.IPEndPoint localEP, int backlog = -1) : this(localaddr: localEP.Address, port: localEP.Port, backlog: backlog)
         {
         }
 
-        protected TcpListener(IPAddress localaddr, int port)
+        protected TcpListener(System.Net.IPAddress localaddr, int port, int backlog = -1)
         {
             this.Address = localaddr;
             this.Port = port;
-            this._tcpConnection = new TcpConnection(this);
+            this.Backlog = backlog;
+            this.CancellationTokenSource = new System.Threading.CancellationTokenSource();
+            this.ConnectionSubject = new System.Reactive.Subjects.Subject<TcpListener.TcpSession>();
+            this.ConnectionObservable = this.ConnectionSubject.AsObservable();
+            this.Sessions = new System.Collections.Generic.HashSet<TcpSession>();
+            this.Subscribe(session =>
+            {
+                this.Sessions.Add(session);
+                System.Console.WriteLine($"{session.Address} connected on port {session.Port}");
+            });
+            this.TcpServerConnection = new TcpServer(host: this);
+        }
+
+        protected virtual void Connect(TcpSession session)
+        {
+            this.ConnectionSubject.OnNext(value: session);
+        }
+
+        protected async void ConnectAsync(System.Net.Sockets.TcpClient tcpClient)
+        {
+            var connection = tcpClient;
+
+            try
+            {
+                await System.Threading.Tasks.Task.Delay(millisecondsDelay: 333, cancellationToken: this.CancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+
+                try
+                {
+                    connection.Dispose();
+                }
+                catch (Exception ex2)
+                {
+                    Console.Error.WriteLine(ex2);
+                }
+
+                return;
+            }
+
+            var endpoint = connection.Client.RemoteEndPoint.ToString();
+            var address = endpoint.Substring(0, endpoint.IndexOf(':'));
+            var port = int.Parse(endpoint.Substring(address.Length + 1));
+
+            this.Connect(session: TcpSession.Create(address: address, port: port, connection: connection));
         }
 
         public void Start()
@@ -36,20 +94,20 @@ namespace MasterMUD.Framework.Networking
             if (true == this.Active)
                 return;
 
-            try
+            this.TcpServerConnection.Start(backlog: this.Backlog);
+
+            if (true == this.Active)
             {
-                this._tcpConnection.Start(backlog: this._backlog);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex);
+                this.ConnectionSubjectSubscription = Observable.While(condition: () => true == this.Active, source: Observable.FromAsync(this.TcpServerConnection.AcceptTcpClientAsync)).Subscribe(onNext: this.ConnectAsync);
             }
         }
 
         protected virtual void Start(int backlog)
         {
-            if (backlog != this._backlog)
-                this._backlog = backlog;
+            if (backlog != this.Backlog)
+            {
+                this.Backlog = backlog;
+            }
 
             this.Start();
         }
@@ -61,45 +119,86 @@ namespace MasterMUD.Framework.Networking
 
             try
             {
-                _tcpConnection.Stop();
+                this.ConnectionSubjectSubscription?.Dispose();
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex);
             }
+            finally
+            {
+                this.ConnectionSubjectSubscription = null;
+                this.TcpServerConnection.Stop();
+            }
         }
 
-        private sealed class TcpConnection : System.Net.Sockets.TcpListener
+        public virtual IDisposable Subscribe(IObserver<TcpListener.TcpSession> observer)
         {
-            private readonly TcpListener _listener;
+            var subscription = this.ConnectionObservable.Subscribe(observer);
+
+            return subscription;
+        }
+
+        protected sealed class TcpServer : System.Net.Sockets.TcpListener
+        {
+            private readonly TcpListener Host;
 
             public new bool Active => base.Active;
 
-            public TcpConnection(TcpListener listener) : base(localaddr: listener.Address, port: listener.Port)
+            protected internal TcpServer(TcpListener host) : base(localaddr: host.Address, port: host.Port)
             {
-                this._listener = listener;
+                this.Host = host;
             }
 
-            public new void Start()
-            {
-                this.Start(backlog: -1);
-            }
+            public new void Start() => this.Start(backlog: -1);
 
             public new void Start(int backlog)
             {
-                if (backlog >= 1)
+                try
                 {
-                    base.Start(backlog: backlog);
+                    if (backlog >= 1)
+                    {
+                        base.Start(backlog: backlog);
+                    }
+                    else
+                    {
+                        base.Start();
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    base.Start();
+                    Console.Error.WriteLine(ex);
                 }
             }
 
             public new void Stop()
             {
-                base.Stop();
+                try
+                {
+                    base.Stop();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(ex);
+                }
+            }
+        }
+
+        public sealed class TcpSession
+        {
+            protected internal static TcpSession Create(string address, int port, System.Net.Sockets.TcpClient connection) => new TcpSession(address: address, port: port, connection: connection);
+
+            public string Address { get; private set; }
+
+            public int Port { get; private set; }
+
+            protected internal System.Net.Sockets.TcpClient Connection { get; private set; }
+
+            private TcpSession(string address, int port, System.Net.Sockets.TcpClient connection)
+            {
+                this.Address = address;
+                this.Port = port;
+                this.Connection = connection;
             }
         }
     }
