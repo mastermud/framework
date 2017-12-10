@@ -83,7 +83,7 @@ namespace MasterMUD.Framework.Networking
             this.ConnectionSubject.OnNext(session);
         }
 
-        public void Disconnect(TcpSession session)
+        public virtual void Disconnect(TcpSession session)
         {
             if (this.Sessions.Contains(session) && this.Sessions.Remove(session))
                 try
