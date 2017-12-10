@@ -6,8 +6,10 @@ namespace MasterMUD.Framework.Networking
 {
     public abstract class TcpListener
     {
-        private readonly TcpConnection _tcpConnection;
+        private volatile int _backlog;
 
+        private readonly TcpConnection _tcpConnection;
+        
         public bool Active => _tcpConnection.Active;
 
         public IPAddress Address { get; }
@@ -29,21 +31,27 @@ namespace MasterMUD.Framework.Networking
             this._tcpConnection = new TcpConnection(this);
         }
 
-        public virtual void Start() => this.Start(backlog: -1);
-
-        public void Start(int backlog)
+        public void Start()
         {
             if (true == this.Active)
                 return;
 
             try
             {
-                this._tcpConnection.Start(backlog: backlog);
+                this._tcpConnection.Start(backlog: this._backlog);
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex);
             }
+        }
+
+        protected virtual void Start(int backlog)
+        {
+            if (backlog != this._backlog)
+                this._backlog = backlog;
+
+            this.Start();
         }
 
         public virtual void Stop()
