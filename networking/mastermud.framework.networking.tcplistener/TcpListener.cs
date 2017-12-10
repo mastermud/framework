@@ -6,9 +6,9 @@ namespace MasterMUD.Framework.Networking
 {
     public abstract class TcpListener
     {
-        private readonly Connection _connection;
+        private readonly TcpConnection _tcpConnection;
 
-        public bool Active => _connection.Active;
+        public bool Active => _tcpConnection.Active;
 
         public IPAddress Address { get; }
 
@@ -26,6 +26,7 @@ namespace MasterMUD.Framework.Networking
         {
             this.Address = localaddr;
             this.Port = port;
+            this._tcpConnection = new TcpConnection(this);
         }
 
         public virtual void Start() => this.Start(backlog: -1);
@@ -37,7 +38,7 @@ namespace MasterMUD.Framework.Networking
 
             try
             {
-                _connection.Start(backlog: backlog);
+                this._tcpConnection.Start(backlog: backlog);
             }
             catch (Exception ex)
             {
@@ -52,21 +53,21 @@ namespace MasterMUD.Framework.Networking
 
             try
             {
-                _connection.Stop();
+                _tcpConnection.Stop();
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex);
-            }            
+            }
         }
 
-        private sealed class Connection : System.Net.Sockets.TcpListener
+        private sealed class TcpConnection : System.Net.Sockets.TcpListener
         {
             private readonly TcpListener _listener;
 
             public new bool Active => base.Active;
 
-            public Connection(TcpListener listener) : base(localaddr: listener.Address, port: listener.Port)
+            public TcpConnection(TcpListener listener) : base(localaddr: listener.Address, port: listener.Port)
             {
                 this._listener = listener;
             }
@@ -78,13 +79,13 @@ namespace MasterMUD.Framework.Networking
 
             public new void Start(int backlog)
             {
-                if (backlog > 0)
+                if (backlog >= 1)
                 {
                     base.Start(backlog: backlog);
                 }
                 else
                 {
-                    base.Stop();
+                    base.Start();
                 }
             }
 
