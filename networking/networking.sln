@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2003
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mastermud.framework.networkingtests", "mastermud.framework.networkingtests\mastermud.framework.networkingtests.csproj", "{447E94C9-4BE0-492A-9A0D-5ED0AB752441}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "mastermud.framework.networkingtests", "mastermud.framework.networkingtests\mastermud.framework.networkingtests.csproj", "{447E94C9-4BE0-492A-9A0D-5ED0AB752441}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mastermud.framework.networking.tcplistener", "mastermud.framework.networking.tcplistener\mastermud.framework.networking.tcplistener.csproj", "{90E43D60-A3A6-4908-B7F5-E83D2FEEC2D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "mastermud.framework.networking.tcplistener", "mastermud.framework.networking.tcplistener\mastermud.framework.networking.tcplistener.csproj", "{90E43D60-A3A6-4908-B7F5-E83D2FEEC2D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mastermud.framework.networking", "mastermud.framework.networking\mastermud.framework.networking.csproj", "{207AA96D-6A18-47EE-ABAB-33A2D6919319}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{90E43D60-A3A6-4908-B7F5-E83D2FEEC2D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90E43D60-A3A6-4908-B7F5-E83D2FEEC2D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90E43D60-A3A6-4908-B7F5-E83D2FEEC2D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{207AA96D-6A18-47EE-ABAB-33A2D6919319}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{207AA96D-6A18-47EE-ABAB-33A2D6919319}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{207AA96D-6A18-47EE-ABAB-33A2D6919319}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{207AA96D-6A18-47EE-ABAB-33A2D6919319}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

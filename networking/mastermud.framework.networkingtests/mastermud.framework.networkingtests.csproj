@@ -6,6 +6,27 @@
     <IsPackable>false</IsPackable>
 
     <RootNamespace>MasterMUD</RootNamespace>
+
+    <Copyright>Copyright © Seth Rudesill 2017</Copyright>
+
+    <Authors>Seth Rudesill</Authors>
+
+    <Company>MasterMUD</Company>
+
+    <Product>MasterMUD</Product>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>7.2</LangVersion>
+    <Optimize>false</Optimize>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>false</Optimize>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>

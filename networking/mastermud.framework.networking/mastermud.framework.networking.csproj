@@ -3,10 +3,17 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <RootNamespace>MasterMUD.Framework.Networking</RootNamespace>
+    <Copyright>Copyright © Seth Rudesill 2017</Copyright>
     <Authors>Seth Rudesill</Authors>
     <Company>MasterMUD</Company>
     <Product>MasterMUD</Product>
-    <Copyright>Copyright © Seth Rudesill 2017</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>7.2</LangVersion>
+    <Optimize>false</Optimize>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -14,17 +21,5 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>false</Optimize>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors />
-    <NoWarn>1701;1702;1705;CS0628</NoWarn>
-    <LangVersion>7.2</LangVersion>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Reactive" Version="4.0.0-preview00001" />
-  </ItemGroup>
 
 </Project>
